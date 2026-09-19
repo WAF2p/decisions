@@ -1,0 +1,1315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>WAF++ Decisions — ADRs & RFCs</title>
+  <meta name="description" content="Standalone showcase of WAF++ Architecture Decision Records and Requests for Comments.">
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --surface: #15171d;
+      --surface-2: #1d2029;
+      --border: #2a2e3b;
+      --text: #e8ecf2;
+      --muted: #9aa3b2;
+      --brand: #3b82f6;
+      --brand-2: #22d3ee;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --radius: 14px;
+      --shadow: 0 18px 60px rgba(0,0,0,0.45);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f7f8fb;
+        --surface: #ffffff;
+        --surface-2: #f1f4f8;
+        --border: #d8dde5;
+        --text: #111827;
+        --muted: #5f6b7a;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.55;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container {
+      width: min(1100px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+    header {
+      padding: 48px 0 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: "";
+      position: absolute;
+      top: -40%; left: -10%;
+      width: 55%; height: 160%;
+      background: radial-gradient(circle, rgba(59,130,246,0.22), transparent 70%);
+      pointer-events: none;
+    }
+    header::after {
+      content: "";
+      position: absolute;
+      top: -20%; right: -10%;
+      width: 45%; height: 140%;
+      background: radial-gradient(circle, rgba(34,211,238,0.18), transparent 70%);
+      pointer-events: none;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(59,130,246,0.12);
+      border: 1px solid rgba(59,130,246,0.25);
+      color: var(--brand);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge span {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--brand);
+      box-shadow: 0 0 10px var(--brand);
+    }
+    h1 {
+      font-size: clamp(38px, 6vw, 68px);
+      line-height: 1.05;
+      margin: 18px 0 14px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    h1 em {
+      font-style: normal;
+      background: linear-gradient(90deg, var(--brand), var(--brand-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .lead {
+      color: var(--muted);
+      font-size: 1.15rem;
+      max-width: 620px;
+      margin: 0 0 26px;
+    }
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); text-decoration: none; }
+    .btn.primary {
+      background: linear-gradient(90deg, var(--brand), var(--brand-2));
+      color: #081016;
+      border: none;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 14px;
+      margin: 34px 0 40px;
+    }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      text-align: center;
+    }
+    .stat .num {
+      font-size: 2.1rem;
+      font-weight: 800;
+      line-height: 1;
+      background: linear-gradient(90deg, var(--brand), var(--brand-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .stat .label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 8px;
+    }
+    .filters {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      align-items: center;
+    }
+    .filters label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .filters select, .filters input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      min-width: 150px;
+    }
+    .filters input { min-width: 200px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+    .card .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .id {
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--brand);
+      letter-spacing: 0.02em;
+    }
+    .status {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+    .status.implemented, .status.accepted { background: rgba(34,197,94,0.12); color: var(--ok); border-color: rgba(34,197,94,0.25); }
+    .status.open { background: rgba(59,130,246,0.12); color: var(--brand); border-color: rgba(59,130,246,0.25); }
+    .status.draft { background: rgba(245,158,11,0.12); color: var(--warn); border-color: rgba(245,158,11,0.25); }
+    .status.rejected, .status.withdrawn, .status.deprecated, .status.superseded { background: rgba(239,68,68,0.12); color: var(--danger); border-color: rgba(239,68,68,0.25); }
+    .title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.3;
+      margin: 0;
+    }
+    .summary {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.5;
+      flex: 1;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .meta span {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .card .links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .card .links a {
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    footer {
+      margin-top: 60px;
+      padding-top: 30px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-align: center;
+    }
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 50px 0;
+      grid-column: 1 / -1;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="badge"><span></span> Decision Registry</div>
+      <h1>WAF++ <em>Decisions</em></h1>
+      <p class="lead">Architecture Decision Records and Requests for Comments that shape the WAF++ ecosystem — in one machine-readable registry.</p>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/WAF2p/wafpp-decisions" target="_blank" rel="noopener">GitHub Repo →</a>
+        <a class="btn" href="./registry.yml">registry.yml</a>
+        <a class="btn" href="./README.md">README.md</a>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="filters">
+      <label for="kindFilter">Kind</label>
+      <select id="kindFilter"><option value="">All</option></select>
+      <label for="statusFilter">Status</label>
+      <select id="statusFilter"><option value="">All</option></select>
+      <label for="repoFilter">Repo</label>
+      <select id="repoFilter"><option value="">All</option></select>
+      <label for="catFilter">Category</label>
+      <select id="catFilter"><option value="">All</option></select>
+      <input id="search" type="search" placeholder="Search title, summary, tags…">
+    </div>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <footer class="container">
+    <p>Generated from <code>registry.yml</code> · Standalone showcase · CC-BY-4.0</p>
+  </footer>
+
+  <script>
+    const registry = {
+  "schema_version": "1.0",
+  "project": {
+    "name": "WAF++",
+    "full_name": "Well-Architected Framework++",
+    "org": "WAF2p",
+    "repo": "WAF2p/wafpp-decisions",
+    "website": "https://waf2p.dev/rfc/",
+    "generated_at": "2026-09-17",
+    "license": "CC-BY-4.0"
+  },
+  "status_lifecycle": {
+    "adr": [
+      "proposed",
+      "accepted",
+      "deprecated",
+      "superseded"
+    ],
+    "rfc": [
+      "draft",
+      "open",
+      "accepted",
+      "rejected",
+      "withdrawn",
+      "implemented"
+    ]
+  },
+  "categories": [
+    "framework",
+    "governance",
+    "tooling",
+    "docs",
+    "security",
+    "contract"
+  ],
+  "repositories": [
+    {
+      "slug": "framework",
+      "name": "WAF++ Framework",
+      "url": "https://github.com/WAF2p/framework",
+      "languages": [
+        "de",
+        "en"
+      ],
+      "branches": {
+        "de": "main-de",
+        "en": "main-en"
+      }
+    },
+    {
+      "slug": "waf2p.github.io",
+      "name": "WAF++ Website",
+      "url": "https://github.com/WAF2p/waf2p.github.io"
+    },
+    {
+      "slug": "wafpass-core",
+      "name": "WAFPass Core",
+      "url": "https://github.com/WAF2p/wafpass-core",
+      "note": "renamed from pass"
+    },
+    {
+      "slug": "wafpass-server",
+      "name": "WAFPass Server",
+      "url": "https://github.com/WAF2p/wafpass-server"
+    },
+    {
+      "slug": "wafpass-dashboard",
+      "name": "WAFPass Dashboard",
+      "url": "https://github.com/WAF2p/wafpass-dashboard"
+    },
+    {
+      "slug": "wafpass-mcp",
+      "name": "WAFPass MCP Bridge",
+      "url": "https://github.com/WAF2p/wafpass-mcp"
+    },
+    {
+      "slug": "wafpass-action",
+      "name": "WAFPass GitHub Action",
+      "url": "https://github.com/WAF2p/wafpass-action"
+    }
+  ],
+  "records": [
+    {
+      "id": "ADR-000",
+      "kind": "adr",
+      "title": "WAF++ Federated Repository Architecture & Onboarding Overview",
+      "status": "accepted",
+      "date": "2026-09-17",
+      "path": "adrs/ADR-000-wafpp-overview.md",
+      "tags": [
+        "architecture",
+        "onboarding",
+        "umbrella"
+      ],
+      "repos": [
+        "framework",
+        "waf2p.github.io",
+        "wafpass-core",
+        "wafpass-server",
+        "wafpass-dashboard",
+        "wafpass-mcp",
+        "wafpass-action"
+      ],
+      "summary": "Master onboarding document explaining the WAF++ ecosystem, repository layout, two-branch documentation model, and central wafpass-result.json contract.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "ADR-001",
+      "kind": "adr",
+      "title": "The wafpass-result.json Contract",
+      "status": "accepted",
+      "date": "2026-09-17",
+      "path": "adrs/ADR-001-wafpass-result-json.md",
+      "tags": [
+        "contract",
+        "wafpass-core",
+        "wafpass-server",
+        "dashboard"
+      ],
+      "repos": [
+        "wafpass-core",
+        "wafpass-server",
+        "wafpass-dashboard"
+      ],
+      "summary": "Defines the single JSON schema that all WAF++ components use to exchange scan results, findings, waivers, risks, and metadata.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "ADR-002",
+      "kind": "adr",
+      "title": "Two Long-Lived Branches for German and English Framework Documentation",
+      "status": "accepted",
+      "date": "2026-09-17",
+      "path": "adrs/ADR-002-two-branch-docs.md",
+      "tags": [
+        "docs",
+        "framework",
+        "localization",
+        "i18n"
+      ],
+      "repos": [
+        "framework"
+      ],
+      "summary": "Uses main-de and main-en branches (checked out as framework/ and framework-en/) so German and English Antora component releases can evolve independently.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0001",
+      "kind": "rfc",
+      "title_en": "Initial 7-pillar framework structure",
+      "title_de": "Initiale 7-Säulen-Framework-Struktur",
+      "category": "framework",
+      "status": "implemented",
+      "opened": "2025-12-05",
+      "decided": "2025-12-05",
+      "implemented": "2025-12-05",
+      "path": "rfcs/RFC-0001-initial-7-pillar-framework-structure.md",
+      "repo": "framework",
+      "pr": 1,
+      "tags": [
+        "pillars",
+        "framework"
+      ],
+      "summary_en": "Establishes the core seven-pillar model as the foundational structure of WAF++. Extended to eight pillars by RFC-0012.",
+      "summary_de": "Legt das grundlegende Sieben-Säulen-Modell als Basis von WAF++ fest. Durch RFC-0012 auf acht Säulen erweitert.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0002",
+      "kind": "rfc",
+      "title_en": "Public 2026 roadmap and milestone planning",
+      "title_de": "Öffentliche Roadmap 2026 und Meilensteinplanung",
+      "category": "governance",
+      "status": "implemented",
+      "opened": "2025-12-06",
+      "decided": "2025-12-06",
+      "implemented": "2025-12-06",
+      "path": "rfcs/RFC-0002-public-2026-roadmap.md",
+      "repo": "framework",
+      "pr": 2,
+      "tags": [
+        "roadmap",
+        "governance"
+      ],
+      "summary_en": "Defines the public roadmap for 2026 covering Q1–Q4 milestones, v1.0 target, pilot programme, and foundation readiness goals.",
+      "summary_de": "Definiert die öffentliche Roadmap für 2026 mit Q1–Q4-Meilensteinen, v1.0-Ziel, Pilotprogramm und Foundation-Readiness-Zielen.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0003",
+      "kind": "rfc",
+      "title_en": "Pillar descriptions and key questions — 7 pillars",
+      "title_de": "Pillar-Beschreibungen und Kernfragen — 7 Säulen",
+      "category": "framework",
+      "status": "implemented",
+      "opened": "2025-12-07",
+      "decided": "2025-12-07",
+      "implemented": "2025-12-07",
+      "path": "rfcs/RFC-0003-pillar-descriptions-and-key-questions.md",
+      "repo": "framework",
+      "pr": 3,
+      "tags": [
+        "pillars",
+        "framework"
+      ],
+      "summary_en": "Adds the initial content definition for each of the 7 pillars. Later extended to cover the 8th Agentic pillar (RFC-0012).",
+      "summary_de": "Fügt die initiale Inhaltsdefinition für jede der 7 Säulen hinzu. Später um die 8. Säule Agentic erweitert (RFC-0012).",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0004",
+      "kind": "rfc",
+      "title_en": "Documentation migration to AsciiDoc / Antora",
+      "title_de": "Dokumentationsmigration zu AsciiDoc / Antora",
+      "category": "docs",
+      "status": "implemented",
+      "opened": "2026-02-20",
+      "decided": "2026-02-26",
+      "implemented": "2026-02-26",
+      "path": "rfcs/RFC-0004-docs-to-asciidoc-antora.md",
+      "repo": "framework",
+      "pr": 4,
+      "tags": [
+        "docs",
+        "antora",
+        "asciidoc"
+      ],
+      "summary_en": "Migrates all framework documentation from Markdown to AsciiDoc and establishes Antora as the documentation build system with component versioning.",
+      "summary_de": "Migriert die gesamte Framework-Dokumentation von Markdown nach AsciiDoc und etabliert Antora als Dokumentations-Build-System mit Komponenten-Versionierung.",
+      "author": "t1murl"
+    },
+    {
+      "id": "RFC-0005",
+      "kind": "rfc",
+      "title_en": "Contribution metadata — CONTRIBUTING, CODE_OF_CONDUCT, SECURITY",
+      "title_de": "Contribution-Metadaten — CONTRIBUTING, CODE_OF_CONDUCT, SECURITY",
+      "category": "governance",
+      "status": "implemented",
+      "opened": "2026-02-06",
+      "decided": "2026-02-08",
+      "implemented": "2026-02-08",
+      "path": "rfcs/RFC-0005-contribution-metadata.md",
+      "repo": "framework",
+      "pr": 6,
+      "tags": [
+        "governance",
+        "oss-health"
+      ],
+      "summary_en": "Adds the standard open-source health files to the framework repository.",
+      "summary_de": "Fügt dem Framework-Repository die Standard-Open-Source-Health-Dateien hinzu.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0006",
+      "kind": "rfc",
+      "title_en": "Sovereign pillar (Pillar 7) — initial controls",
+      "title_de": "Sovereign-Pillar (Säule 7) — initiale Controls",
+      "category": "framework",
+      "status": "implemented",
+      "opened": "2026-02-14",
+      "decided": "2026-03-04",
+      "implemented": "2026-03-04",
+      "path": "rfcs/RFC-0006-sovereign-pillar-initial-controls.md",
+      "repo": "framework",
+      "tags": [
+        "pillars",
+        "sovereign",
+        "controls"
+      ],
+      "summary_en": "Introduces the Sovereign pillar as the 7th pillar of WAF++ with 10 initial controls (WAF-SOV-010 through WAF-SOV-100).",
+      "summary_de": "Führt den Sovereign-Pillar als 7. Säule von WAF++ ein mit 10 initialen Controls.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0007",
+      "kind": "rfc",
+      "title_en": "Governance refactor — modular best practices, case studies and navigation",
+      "title_de": "Governance-Refactor — modulare Best Practices, Fallstudien und Navigation",
+      "category": "framework",
+      "status": "implemented",
+      "opened": "2026-02-24",
+      "decided": "2026-03-04",
+      "implemented": "2026-03-04",
+      "path": "rfcs/RFC-0007-governance-refactor.md",
+      "repo": "framework",
+      "pr": 10,
+      "tags": [
+        "pillars",
+        "governance",
+        "docs"
+      ],
+      "summary_en": "Restructures the Governance pillar into modular best-practice pages and adds case-study content.",
+      "summary_de": "Strukturiert den Governance-Pillar in modulare Best-Practice-Seiten um und ergänzt Fallstudien.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0008",
+      "kind": "rfc",
+      "title_en": "Controls schema v1 — machine-readable YAML specification",
+      "title_de": "Controls-Schema v1 — maschinenlesbare YAML-Spezifikation",
+      "category": "tooling",
+      "status": "implemented",
+      "opened": "2026-03-10",
+      "decided": "2026-05-12",
+      "implemented": "2026-05-12",
+      "path": "rfcs/RFC-0008-controls-schema-v1.md",
+      "repo": "framework",
+      "tags": [
+        "controls",
+        "schema",
+        "tooling"
+      ],
+      "summary_en": "Defines a formal schema for WAF++ controls YAML files, enabling validation and tooling integration for the 83+ controls library.",
+      "summary_de": "Definiert ein formales Schema für WAF++-Controls-YAML-Dateien für Validierung und Tool-Integration.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0009",
+      "kind": "rfc",
+      "title_en": "PASS scoring model — formal specification for v1.0",
+      "title_de": "PASS-Scoring-Modell — formale Spezifikation für v1.0",
+      "category": "framework",
+      "status": "implemented",
+      "opened": "2026-03-08",
+      "decided": "2026-05-12",
+      "implemented": "2026-05-12",
+      "path": "rfcs/RFC-0009-pass-scoring-model-v1.md",
+      "repo": "framework",
+      "tags": [
+        "scoring",
+        "pass",
+        "framework"
+      ],
+      "summary_en": "Formalises the PASS scoring model as a normative specification for tier definitions, calculation rules, aggregation logic, and versioning contract.",
+      "summary_de": "Formalisiert das PASS-Scoring-Modell als normative Spezifikation für Tier-Definitionen, Berechnungsregeln, Aggregationslogik und Versionierungsvertrag.",
+      "author": "t1murl"
+    },
+    {
+      "id": "RFC-0010",
+      "kind": "rfc",
+      "title_en": "Assessment tooling — CLI and scorecard approach",
+      "title_de": "Assessment-Tooling — CLI und Scorecard-Ansatz",
+      "category": "tooling",
+      "status": "implemented",
+      "opened": "2026-03-11",
+      "decided": "2026-05-12",
+      "implemented": "2026-05-12",
+      "path": "rfcs/RFC-0010-assessment-tooling-cli-scorecard.md",
+      "repo": "framework",
+      "tags": [
+        "tooling",
+        "pass",
+        "cli",
+        "dashboard"
+      ],
+      "summary_en": "Defines the approach for official WAF++ assessment tooling including the WAFPass CLI, server, dashboard, and web scorecard.",
+      "summary_de": "Definiert den Ansatz für das offizielle WAF++-Assessment-Tooling inklusive WAFPass CLI, Server, Dashboard und Web-Scorecard.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0011",
+      "kind": "rfc",
+      "title_en": "CI/CD pipeline for framework and tooling repositories",
+      "title_de": "CI/CD-Pipeline für Framework- und Tooling-Repositories",
+      "category": "tooling",
+      "status": "implemented",
+      "opened": "2026-03-11",
+      "decided": "2026-03-22",
+      "implemented": "2026-03-22",
+      "path": "rfcs/RFC-0011-ci-cd-pipeline.md",
+      "repo": "framework",
+      "tags": [
+        "ci",
+        "tooling",
+        "automation"
+      ],
+      "summary_en": "Introduces automated checks and release workflows for framework, wafpass-core, wafpass-server, and wafpass-dashboard repositories.",
+      "summary_de": "Führt automatisierte Checks und Release-Workflows für die Framework- und WAFPass-Repositories ein.",
+      "author": "t1murl"
+    },
+    {
+      "id": "RFC-0012",
+      "kind": "rfc",
+      "title_en": "Agentic pillar as the 8th pillar",
+      "title_de": "Agentic-Pillar als 8. Säule",
+      "category": "framework",
+      "status": "implemented",
+      "opened": "2026-07-01",
+      "decided": "2026-07-05",
+      "implemented": "2026-07-05",
+      "path": "rfcs/RFC-0012-agentic-pillar.md",
+      "repo": "framework",
+      "pr": 19,
+      "tags": [
+        "pillars",
+        "agentic",
+        "controls"
+      ],
+      "summary_en": "Adds the Agentic pillar as the 8th pillar of WAF++ with 10 initial controls, regulatory mappings, and bilingual documentation.",
+      "summary_de": "Fügt den Agentic-Pillar als 8. Säule von WAF++ hinzu mit 10 initialen Controls, regulatorischen Mappings und deutscher/englischer Dokumentation.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0013",
+      "kind": "rfc",
+      "title_en": "WAFPass support for Pillar-8 Agentic",
+      "title_de": "WAFPass-Unterstützung für Säule-8 Agentic",
+      "category": "tooling",
+      "status": "implemented",
+      "opened": "2026-05-20",
+      "decided": "2026-05-27",
+      "implemented": "2026-05-27",
+      "path": "rfcs/RFC-0013-wafpass-supports-agentic.md",
+      "repo": "wafpass-core",
+      "pr": 28,
+      "tags": [
+        "tooling",
+        "pass",
+        "agentic"
+      ],
+      "summary_en": "Extends WAFPass CLI, server, and dashboard to evaluate the Agentic pillar controls as part of a full PASS assessment.",
+      "summary_de": "Erweitert WAFPass CLI, Server und Dashboard, um die Agentic-Pillar-Controls im Rahmen einer vollständigen PASS-Bewertung auszuwerten.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0014",
+      "kind": "rfc",
+      "title_en": "WAFPass CLI / Server / Dashboard v1.1.0 release",
+      "title_de": "WAFPass CLI / Server / Dashboard v1.1.0-Release",
+      "category": "tooling",
+      "status": "implemented",
+      "opened": "2026-06-28",
+      "decided": "2026-07-05",
+      "implemented": "2026-07-05",
+      "path": "rfcs/RFC-0014-wafpass-v1-1-0-release.md",
+      "repo": "wafpass-core",
+      "pr": 31,
+      "tags": [
+        "release",
+        "tooling",
+        "pass",
+        "server",
+        "dashboard"
+      ],
+      "summary_en": "Releases WAFPass CLI v1.1.0, Server v1.1.0, and Dashboard v1.1.0 with Pillar-8 Agentic support, detection fixes, and SINA Cloud region detection.",
+      "summary_de": "Veröffentlicht WAFPass CLI v1.1.0, Server v1.1.0 und Dashboard v1.1.0 mit Unterstützung für Säule-8 Agentic, Erkennungskorrekturen und SINA-Cloud-Region-Erkennung.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0015",
+      "kind": "rfc",
+      "title_en": "Website radical redesign — apply dark-first theme to all public pages",
+      "title_de": "Website-Radical-Redesign — dunkles Theme auf alle öffentlichen Seiten ausrollen",
+      "category": "docs",
+      "status": "open",
+      "opened": "2026-07-06",
+      "path": "rfcs/RFC-0015-website-radical-redesign.md",
+      "discussion": "https://github.com/orgs/WAF2p/discussions",
+      "tags": [
+        "docs",
+        "website",
+        "design"
+      ],
+      "summary_en": "Applies the radical dark-first design system to the remaining public pages so the whole site uses one consistent visual language.",
+      "summary_de": "Rollt das radical dunkle Design-System auf die verbleibenden öffentlichen Seiten aus.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0016",
+      "kind": "rfc",
+      "title_en": "Control-level remediation playbooks",
+      "title_de": "Remediation-Playbooks auf Control-Ebene",
+      "category": "framework",
+      "status": "draft",
+      "opened": "2026-07-08",
+      "path": "rfcs/RFC-0016-control-remediation-playbooks.md",
+      "repo": "framework",
+      "tags": [
+        "controls",
+        "remediation",
+        "framework"
+      ],
+      "summary_en": "Standardises machine- and human-readable remediation guidance for every WAF++ control so operators can act on findings directly.",
+      "summary_de": "Standardisiert maschinen- und menschenlesbare Remediation-Anleitungen für jeden WAF++-Control.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-0017",
+      "kind": "rfc",
+      "title_en": "Multi-cloud provider expansion beyond AWS and SINA Cloud",
+      "title_de": "Multi-Cloud-Provider-Erweiterung über AWS und SINA Cloud hinaus",
+      "category": "tooling",
+      "status": "draft",
+      "opened": "2026-07-08",
+      "path": "rfcs/RFC-0017-multi-cloud-provider-expansion.md",
+      "repo": "framework",
+      "tags": [
+        "tooling",
+        "cloud-providers",
+        "aws",
+        "azure",
+        "gcp"
+      ],
+      "summary_en": "Defines how WAFPass detection and controls will be extended to cover Azure, GCP, and other cloud providers while keeping the framework cloud-agnostic.",
+      "summary_de": "Definiert, wie WAFPass-Erkennung und Controls um Azure, GCP und weitere Cloud-Provider erweitert werden, während das Framework cloud-agnostic bleibt.",
+      "author": "sascha-lewandowski"
+    },
+    {
+      "id": "RFC-GH-wafpass-mcp-7",
+      "kind": "rfc",
+      "title_en": "RFC-5: Role-aware natural tool aliasing",
+      "title_de": "RFC-5: Role-aware natural tool aliasing",
+      "category": "tooling",
+      "status": "open",
+      "opened": "2026-08-14",
+      "repo": "wafpass-mcp",
+      "issue_number": 7,
+      "source_url": "https://github.com/WAF2p/wafpass-mcp/issues/7",
+      "discussion": "https://github.com/WAF2p/wafpass-mcp/issues/7",
+      "path": "rfcs/RFC-GH-wafpass-mcp-7-role-aware-natural-tool-aliasing.md",
+      "tags": [
+        "tooling",
+        "mcp",
+        "ai"
+      ],
+      "summary_en": "Allow curated aliases for long auto-generated MCP tool names so LLMs can match them more naturally.",
+      "summary_de": "Erlaubt kuratierte Aliase für lange, automatisch generierte MCP-Tool-Namen.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-wafpass-mcp-4",
+      "kind": "rfc",
+      "title_en": "RFC-2: MCP resource-level read-only endpoints",
+      "title_de": "RFC-2: MCP resource-level read-only endpoints",
+      "category": "tooling",
+      "status": "open",
+      "opened": "2026-08-14",
+      "repo": "wafpass-mcp",
+      "issue_number": 4,
+      "source_url": "https://github.com/WAF2p/wafpass-mcp/issues/4",
+      "discussion": "https://github.com/WAF2p/wafpass-mcp/issues/4",
+      "path": "rfcs/RFC-GH-wafpass-mcp-4-mcp-resource-readonly-endpoints.md",
+      "tags": [
+        "tooling",
+        "mcp",
+        "api"
+      ],
+      "summary_en": "Add MCP Resource definitions for run://{run_id}, control://{id}, etc. to expose read-only data without multiple tool calls.",
+      "summary_de": "Fügt MCP-Resource-Definitionen für Läufe, Controls usw. hinzu, um lesenden Zugriff ohne mehrere Tool-Aufrufe zu ermöglichen.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-wafpass-mcp-6",
+      "kind": "rfc",
+      "title_en": "RFC-4: Multi-step remediation plans (apply with rollback)",
+      "title_de": "RFC-4: Multi-step remediation plans (apply with rollback)",
+      "category": "tooling",
+      "status": "open",
+      "opened": "2026-08-14",
+      "repo": "wafpass-mcp",
+      "issue_number": 6,
+      "source_url": "https://github.com/WAF2p/wafpass-mcp/issues/6",
+      "discussion": "https://github.com/WAF2p/wafpass-mcp/issues/6",
+      "path": "rfcs/RFC-GH-wafpass-mcp-6-multi-step-remediation-plans.md",
+      "tags": [
+        "tooling",
+        "mcp",
+        "auto-fix"
+      ],
+      "summary_en": "Extend auto-fix/classify with an apply step that records changes and supports rollback.",
+      "summary_de": "Erweitert auto-fix/classify um einen Apply-Schritt mit Änderungsprotokoll und Rollback.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-wafpass-mcp-5",
+      "kind": "rfc",
+      "title_en": "RFC-3: Streaming/paginated tool results for large runs",
+      "title_de": "RFC-3: Streaming/paginated tool results for large runs",
+      "category": "tooling",
+      "status": "open",
+      "opened": "2026-08-14",
+      "repo": "wafpass-mcp",
+      "issue_number": 5,
+      "source_url": "https://github.com/WAF2p/wafpass-mcp/issues/5",
+      "discussion": "https://github.com/WAF2p/wafpass-mcp/issues/5",
+      "path": "rfcs/RFC-GH-wafpass-mcp-5-streaming-paginated-tool-results.md",
+      "tags": [
+        "tooling",
+        "mcp",
+        "performance"
+      ],
+      "summary_en": "Add cursor-based pagination helpers so large runs do not blow MCP message size limits.",
+      "summary_de": "Fügt paginierte Hilfsmethoden hinzu, damit große Läufe die MCP-Nachrichtengröße nicht sprengen.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-wafpass-mcp-3",
+      "kind": "rfc",
+      "title_en": "RFC-1: Auto-fix default templates for WAFpass controls",
+      "title_de": "RFC-1: Auto-fix default templates for WAFpass controls",
+      "category": "tooling",
+      "status": "open",
+      "opened": "2026-08-14",
+      "repo": "wafpass-mcp",
+      "issue_number": 3,
+      "source_url": "https://github.com/WAF2p/wafpass-mcp/issues/3",
+      "discussion": "https://github.com/WAF2p/wafpass-mcp/issues/3",
+      "path": "rfcs/RFC-GH-wafpass-mcp-3-auto-fix-default-templates.md",
+      "tags": [
+        "tooling",
+        "mcp",
+        "controls",
+        "auto-fix"
+      ],
+      "summary_en": "Add fix blocks to control YAMLs or a central provider registry so common assertions get default patches.",
+      "summary_de": "Ergänzt Fix-Blöcke in Control-YAMLs oder eine zentrale Provider-Registry für Standard-Patches.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-framework-26",
+      "kind": "rfc",
+      "title_en": "RFC: Qualitätssicherung",
+      "title_de": "RFC: Qualitätssicherung",
+      "category": "docs",
+      "status": "open",
+      "opened": "2026-07-18",
+      "repo": "framework",
+      "issue_number": 26,
+      "source_url": "https://github.com/WAF2p/framework/issues/26",
+      "discussion": "https://github.com/WAF2p/framework/issues/26",
+      "path": "rfcs/RFC-GH-framework-26-qualitaetssicherung.md",
+      "tags": [
+        "docs",
+        "ci",
+        "linting"
+      ],
+      "summary_en": "CI checks for dead xrefs, unregistered nav.adoc files, and control-schema consistency between YAML, AsciiDoc, and navigation.",
+      "summary_de": "CI-Checks für tote xrefs, nicht registrierte nav.adoc-Dateien und Control-Schema-Konsistenz.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-framework-25",
+      "kind": "rfc",
+      "title_en": "RFC: Sovereign & Resources ausbauen",
+      "title_de": "RFC: Sovereign & Resources ausbauen",
+      "category": "docs",
+      "status": "open",
+      "opened": "2026-07-18",
+      "repo": "framework",
+      "issue_number": 25,
+      "source_url": "https://github.com/WAF2p/framework/issues/25",
+      "discussion": "https://github.com/WAF2p/framework/issues/25",
+      "path": "rfcs/RFC-GH-framework-25-sovereign-resources-ausbauen.md",
+      "tags": [
+        "docs",
+        "sovereign",
+        "resources"
+      ],
+      "summary_en": "Expand Sovereign definitions, evidence matrix, and create real overview/glossary pages for resources and wording.",
+      "summary_de": "Sovereign-Definition/Scope erweitern, Evidence-Matrix und echte Übersichts-/Glossar-Seiten erstellen.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-framework-23",
+      "kind": "rfc",
+      "title_en": "RFC: Agentic-Säule vollenden",
+      "title_de": "RFC: Agentic-Säule vollenden",
+      "category": "docs",
+      "status": "open",
+      "opened": "2026-07-18",
+      "repo": "framework",
+      "issue_number": 23,
+      "source_url": "https://github.com/WAF2p/framework/issues/23",
+      "discussion": "https://github.com/WAF2p/framework/issues/23",
+      "path": "rfcs/RFC-GH-framework-23-agentic-saeule-vollenden.md",
+      "tags": [
+        "docs",
+        "agentic",
+        "pillars"
+      ],
+      "summary_en": "Complete Agentic pillar maturity, evidence, glossary, and best-practice pages with examples.",
+      "summary_de": "Agentic-Säule um Maturity, Evidence, Glossar und Best-Practice-Beispiele vervollständigen.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-framework-22",
+      "kind": "rfc",
+      "title_en": "RFC: Navigation & Links konsolidieren",
+      "title_de": "RFC: Navigation & Links konsolidieren",
+      "category": "docs",
+      "status": "open",
+      "opened": "2026-07-18",
+      "repo": "framework",
+      "issue_number": 22,
+      "source_url": "https://github.com/WAF2p/framework/issues/22",
+      "discussion": "https://github.com/WAF2p/framework/issues/22",
+      "path": "rfcs/RFC-GH-framework-22-navigation-links-konsolidieren.md",
+      "tags": [
+        "docs",
+        "navigation",
+        "links"
+      ],
+      "summary_en": "Standardise module links, convert relative xrefs to module-prefixed xrefs, and clean Markdown links.",
+      "summary_de": "Modul-Links vereinheitlichen, relative xrefs in Modul-Präfix-xrefs umwandeln und Markdown-Links bereinigen.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-framework-21",
+      "kind": "rfc",
+      "title_en": "RFC: Antora-Struktur finalisieren",
+      "title_de": "RFC: Antora-Struktur finalisieren",
+      "category": "docs",
+      "status": "open",
+      "opened": "2026-07-18",
+      "repo": "framework",
+      "issue_number": 21,
+      "source_url": "https://github.com/WAF2p/framework/issues/21",
+      "discussion": "https://github.com/WAF2p/framework/issues/21",
+      "path": "rfcs/RFC-GH-framework-21-antora-struktur-finalisieren.md",
+      "tags": [
+        "docs",
+        "antora",
+        "structure"
+      ],
+      "summary_en": "Finalise antora.yml registration, create pillar-security nav, update README/AGENTS for 8-module layout.",
+      "summary_de": "antora.yml finalisieren, pillar-security/nav.adoc anlegen, README/AGENTS auf 8-Modul-Layout aktualisieren.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-framework-24",
+      "kind": "rfc",
+      "title_en": "RFC: Controls-Katalog korrigieren und erweitern",
+      "title_de": "RFC: Controls-Katalog korrigieren und erweitern",
+      "category": "docs",
+      "status": "open",
+      "opened": "2026-07-18",
+      "repo": "framework",
+      "issue_number": 24,
+      "source_url": "https://github.com/WAF2p/framework/issues/24",
+      "discussion": "https://github.com/WAF2p/framework/issues/24",
+      "path": "rfcs/RFC-GH-framework-24-controls-katalog-korrigieren.md",
+      "tags": [
+        "docs",
+        "controls",
+        "catalog"
+      ],
+      "summary_en": "Align controls to 8 pillars, add Agentic, and extend control-schema.adoc.",
+      "summary_de": "Controls auf 8 Säulen ausrichten, Agentic aufnehmen und control-schema.adoc erweitern.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-wafpass-core-41",
+      "kind": "rfc",
+      "title_en": "Feature Request: Comprehensive Test/Quality Coverage Implementation Plan",
+      "title_de": "Feature Request: Comprehensive Test/Quality Coverage Implementation Plan",
+      "category": "tooling",
+      "status": "open",
+      "opened": "2026-07-18",
+      "repo": "wafpass-core",
+      "issue_number": 41,
+      "source_url": "https://github.com/WAF2p/pass/issues/41",
+      "discussion": "https://github.com/WAF2p/pass/issues/41",
+      "path": "rfcs/RFC-GH-wafpass-core-41-test-quality-coverage-plan.md",
+      "tags": [
+        "tooling",
+        "testing",
+        "quality"
+      ],
+      "summary_en": "Unify fragmented test and coverage strategy across wafpass-core, server, and dashboard.",
+      "summary_de": "Fragmentierte Test- und Coverage-Strategie über wafpass-core, Server und Dashboard vereinheitlichen.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-wafpass-core-42",
+      "kind": "rfc",
+      "title_en": "Feature Request: API Versioning and Backwards-Compatibility Strategy for WAF++ PASS",
+      "title_de": "Feature Request: API Versioning and Backwards-Compatibility Strategy for WAF++ PASS",
+      "category": "tooling",
+      "status": "open",
+      "opened": "2026-07-18",
+      "repo": "wafpass-core",
+      "issue_number": 42,
+      "source_url": "https://github.com/WAF2p/pass/issues/42",
+      "discussion": "https://github.com/WAF2p/pass/issues/42",
+      "path": "rfcs/RFC-GH-wafpass-core-42-api-versioning-strategy.md",
+      "tags": [
+        "tooling",
+        "api",
+        "versioning"
+      ],
+      "summary_en": "Define API maturity, backwards-compatibility rules, and versioning strategy for WAF++ PASS APIs.",
+      "summary_de": "API-Maturity, Abwärtskompatibilitätsregeln und Versionierungsstrategie für WAF++ PASS APIs definieren.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-wafpass-core-43",
+      "kind": "rfc",
+      "title_en": "Feature Request: Source Snapshots — Ingestion Contract and Reliable Upload Path",
+      "title_de": "Feature Request: Source Snapshots — Ingestion Contract and Reliable Upload Path",
+      "category": "tooling",
+      "status": "open",
+      "opened": "2026-07-18",
+      "repo": "wafpass-core",
+      "issue_number": 43,
+      "source_url": "https://github.com/WAF2p/pass/issues/43",
+      "discussion": "https://github.com/WAF2p/pass/issues/43",
+      "path": "rfcs/RFC-GH-wafpass-core-43-source-snapshots-contract.md",
+      "tags": [
+        "tooling",
+        "contract",
+        "ingestion"
+      ],
+      "summary_en": "Define a reliable source-snapshot ingestion contract so dashboard preview and auto-fix work consistently.",
+      "summary_de": "Zuverlässigen Source-Snapshot-Ingestion-Vertrag definieren für Dashboard-Vorschau und Auto-Fix.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-wafpass-core-40",
+      "kind": "rfc",
+      "title_en": "Feature Request: Dashboard UX Overhaul — Guided Onboarding, Role-Based Landing, and Progressive Disclosure",
+      "title_de": "Feature Request: Dashboard UX Overhaul — Guided Onboarding, Role-Based Landing, and Progressive Disclosure",
+      "category": "tooling",
+      "status": "open",
+      "opened": "2026-07-18",
+      "repo": "wafpass-core",
+      "issue_number": 40,
+      "source_url": "https://github.com/WAF2p/pass/issues/40",
+      "discussion": "https://github.com/WAF2p/pass/issues/40",
+      "path": "rfcs/RFC-GH-wafpass-core-40-dashboard-ux-overhaul.md",
+      "tags": [
+        "tooling",
+        "dashboard",
+        "ux"
+      ],
+      "summary_en": "Reduce dashboard navigation fragmentation and add guided onboarding with role-based landing pages.",
+      "summary_de": "Dashboard-Navigation vereinfachen und geführte Onboarding- sowie rollenbasierte Landing-Pages hinzufügen.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-wafpass-core-39",
+      "kind": "rfc",
+      "title_en": "Feature Request: Implement Action-Oriented Notifications",
+      "title_de": "Feature Request: Implement Action-Oriented Notifications",
+      "category": "tooling",
+      "status": "open",
+      "opened": "2026-07-17",
+      "repo": "wafpass-core",
+      "issue_number": 39,
+      "source_url": "https://github.com/WAF2p/pass/issues/39",
+      "discussion": "https://github.com/WAF2p/pass/issues/39",
+      "path": "rfcs/RFC-GH-wafpass-core-39-action-oriented-notifications.md",
+      "tags": [
+        "tooling",
+        "dashboard",
+        "notifications"
+      ],
+      "summary_en": "Make dashboard notifications actionable instead of passive text displays.",
+      "summary_de": "Dashboard-Benachrichtigungen aktionierbar machen statt passiver Textanzeigen.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-wafpass-core-38",
+      "kind": "rfc",
+      "title_en": "Feature Request: Implement Control Packs Marketplace",
+      "title_de": "Feature Request: Implement Control Packs Marketplace",
+      "category": "tooling",
+      "status": "open",
+      "opened": "2026-07-17",
+      "repo": "wafpass-core",
+      "issue_number": 38,
+      "source_url": "https://github.com/WAF2p/pass/issues/38",
+      "discussion": "https://github.com/WAF2p/pass/issues/38",
+      "path": "rfcs/RFC-GH-wafpass-core-38-control-packs-marketplace.md",
+      "tags": [
+        "tooling",
+        "marketplace",
+        "controls"
+      ],
+      "summary_en": "Expand the control-packs feature beyond admin-only uploads to a real marketplace with discovery and governance.",
+      "summary_de": "Control-Packs-Funktion über Admin-Uploads hinaus zu einem Marktplatz mit Discovery und Governance ausbauen.",
+      "author": "lewandos"
+    },
+    {
+      "id": "RFC-GH-wafpass-core-37",
+      "kind": "rfc",
+      "title_en": "Feature Request: Implement Maturity-Tier Enforcement Policy Gates",
+      "title_de": "Feature Request: Implement Maturity-Tier Enforcement Policy Gates",
+      "category": "tooling",
+      "status": "open",
+      "opened": "2026-07-17",
+      "repo": "wafpass-core",
+      "issue_number": 37,
+      "source_url": "https://github.com/WAF2p/pass/issues/37",
+      "discussion": "https://github.com/WAF2p/pass/issues/37",
+      "path": "rfcs/RFC-GH-wafpass-core-37-maturity-tier-policy-gates.md",
+      "tags": [
+        "tooling",
+        "maturity",
+        "cicd"
+      ],
+      "summary_en": "Tie maturity tiers to CI/CD policy gates so pipelines can block promotion below a target tier.",
+      "summary_de": "Maturity-Tiers an CI/CD-Policy-Gates koppeln, damit Pipelines Promotion unter einem Ziel-Tier blockieren können.",
+      "author": "lewandos"
+    }
+  ]
+};
+
+    const grid = document.getElementById('grid');
+    const stats = document.getElementById('stats');
+    const kindFilter = document.getElementById('kindFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const repoFilter = document.getElementById('repoFilter');
+    const catFilter = document.getElementById('catFilter');
+    const search = document.getElementById('search');
+
+    const records = registry.records || [];
+
+    const unique = key => [...new Set(records.map(r => r[key]).filter(Boolean).flat())].sort();
+    const uniqueSingle = key => [...new Set(records.map(r => r[key]).filter(Boolean))].sort();
+
+    function fill(select, values) {
+      const cur = select.value;
+      select.innerHTML = '<option value="">All</option>' + values.map(v => `<option value="${v}">${v}</option>`).join('');
+      select.value = cur;
+    }
+
+    fill(kindFilter, uniqueSingle('kind'));
+    fill(statusFilter, uniqueSingle('status'));
+    fill(repoFilter, unique('repo'));
+    fill(catFilter, uniqueSingle('category'));
+
+    function repoUrl(slug) {
+      const r = (registry.repositories || []).find(x => x.slug === slug);
+      return r ? r.url : `https://github.com/WAF2p/${slug}`;
+    }
+
+    function render() {
+      const q = search.value.toLowerCase();
+      const filtered = records.filter(r => {
+        const text = [r.id, r.title_en, r.title_de, r.summary_en, r.summary_de, (r.tags || []).join(' ')].join(' ').toLowerCase();
+        const inRepo = !repoFilter.value || (r.repo === repoFilter.value) || ((r.repos || []).includes(repoFilter.value));
+        return (!kindFilter.value || r.kind === kindFilter.value) &&
+               (!statusFilter.value || r.status === statusFilter.value) &&
+               inRepo &&
+               (!catFilter.value || r.category === catFilter.value) &&
+               (!q || text.includes(q));
+      });
+
+      const counts = {};
+      records.forEach(r => { counts[r.kind] = (counts[r.kind] || 0) + 1; });
+      const statusCounts = {};
+      records.forEach(r => { statusCounts[r.status] = (statusCounts[r.status] || 0) + 1; });
+
+      stats.innerHTML = `
+        <div class="stat"><div class="num">${records.length}</div><div class="label">Total records</div></div>
+        <div class="stat"><div class="num">${counts.adr || 0}</div><div class="label">ADRs</div></div>
+        <div class="stat"><div class="num">${counts.rfc || 0}</div><div class="label">RFCs</div></div>
+        <div class="stat"><div class="num">${statusCounts.implemented || 0}</div><div class="label">Implemented</div></div>
+        <div class="stat"><div class="num">${(statusCounts.open || 0) + (statusCounts.draft || 0)}</div><div class="label">Open / Draft</div></div>
+      `;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div class="empty">No records match the current filters.</div>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(r => {
+        const title = r.title_en || r.title;
+        const summary = r.summary_en || r.summary;
+        const statusClass = r.status;
+        const fileUrl = `https://github.com/WAF2p/wafpp-decisions/blob/main/${r.path}`;
+        const discussion = r.discussion || r.source_url;
+        const repoName = r.repo || (r.repos && r.repos[0]);
+        const repoLink = repoName ? `<a href="${repoUrl(repoName)}" target="_blank" rel="noopener">${repoName}</a>` : '';
+        return `
+          <article class="card">
+            <div class="row">
+              <span class="id">${r.id}</span>
+              <span class="status ${statusClass}">${r.status}</span>
+            </div>
+            <h3 class="title">${title}</h3>
+            <p class="summary">${summary || ''}</p>
+            <div class="meta">
+              <span>${r.kind.toUpperCase()}</span>
+              ${(r.tags || []).map(t => `<span>#${t}</span>`).join('')}
+              ${r.category ? `<span>${r.category}</span>` : ''}
+              ${r.date ? `<span>${r.date}</span>` : (r.opened ? `<span>${r.opened}</span>` : '')}
+              ${repoName ? `<span>${repoLink}</span>` : ''}
+            </div>
+            <div class="links">
+              <a href="${fileUrl}" target="_blank" rel="noopener">View record →</a>
+              ${discussion ? `<a href="${discussion}" target="_blank" rel="noopener">Discussion →</a>` : ''}
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    [kindFilter, statusFilter, repoFilter, catFilter, search].forEach(el => el.addEventListener('input', render));
+    render();
+  </script>
+</body>
+</html>
